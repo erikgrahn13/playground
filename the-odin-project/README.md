@@ -1,0 +1,1 @@
+# This directory contains exercises and projects from The Odin Project
