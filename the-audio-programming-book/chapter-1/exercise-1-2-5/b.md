@@ -1,0 +1,1 @@
+###  Using a loop to iterate through all the notes would make this task easier
