@@ -1,0 +1,1 @@
+I'm not familiar with CSound and have no interest in learning it even though it is used in this book!
