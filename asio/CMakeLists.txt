@@ -35,3 +35,4 @@ target_include_directories(asio PUBLIC
 
 add_executable(${PROJECT_NAME} main.cpp)
 target_link_libraries(${PROJECT_NAME} PRIVATE asio)
+target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_23)
