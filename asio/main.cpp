@@ -68,8 +68,6 @@ class AudioDeviceAsio
 
         if(ASIOGetChannels(&audioStreamProperties.totalNumInputChannels, &audioStreamProperties.totalNumOutputChannels) == ASE_OK)
         {
-            // std::cout << "numInputChannels = " << inputChannels << std::endl;
-            // std::cout << "numOutputChannels = " << outputChannels << std::endl;
         }
 
         std::vector<ASIOChannelInfo> channelInfos;
@@ -348,26 +346,33 @@ class AudioDeviceAsio
         return 0;
     }
 
-    std::vector<std::string>& getInputChannelNames() { return inputChannelNames; }
-    std::vector<std::string>& getOutputChannelNames() { return outputChannelNames; }
     std::vector<float*> inBuffers;
     std::vector<float*> outBuffers;
     std::vector<float> scratchBuffer;
-
-
-
-
 
     private:
     // Callbacks
     static void bufferSwitch(long doubleBufferIndex, ASIOBool directProcess)
     {
-        std::cout << "Callback process bufferSwitch" << std::endl;
+        ASIOTime timeInfo;
+        memset(&timeInfo, 0, sizeof(timeInfo));
+
+        if(ASIOGetSamplePosition(&timeInfo.timeInfo.samplePosition, &timeInfo.timeInfo.systemTime) == ASE_OK)
+        {
+            timeInfo.timeInfo.flags = kSystemTimeValid | kSamplePositionValid;
+        }
+        bufferSwitchTimeInfo(&timeInfo, doubleBufferIndex, directProcess);
     }
 
     static void sampleRateDidChange(ASIOSampleRate sRate)
     {
-
+        // From the ASIO SDK:
+        // do whatever you need to do if the sample rate changed
+        // usually this only happens during external sync.
+        // Audio processing is not stopped by the driver, actual sample rate
+        // might not have even changed, maybe only the sample rate status of an
+        // AES/EBU or S/PDIF digital input at the audio device.
+        // You might have to update time/sample related conversion routines, etc.
     }
 
     static long asioMessage(long selector, long value, void* message, double *opt)
@@ -422,8 +427,6 @@ class AudioDeviceAsio
         case kAsioOverload:
             std::cout << "AsioOverload" << std::endl;
             break;
-        
-        
         default:
             break;
         }
@@ -436,24 +439,23 @@ class AudioDeviceAsio
         switch (bitDepth)
         {
         case 16:
-            factor = 32768.0;
+            factor = 1.0 / 32768.0; //  Ensures that -32768 maps to -1.0, and +32767 is just below 1.0.
             break;
         case 24:
-            factor = 8388608.0;
+            factor = 1.0 / 0x7fffff;
             break;
         case 32:
-            factor = 2147483648.0;
+            factor = 1.0 / 0x7fffffff;
             break;
         default:
             break;
         }
 
-        const double scale = 1.0 / 0x7FFFFFFF;  // Normalization factor
         const int32_t* srcSamples = static_cast<const int32_t*>(src);
     
         for (size_t i = 0; i < dest.size(); ++i) {
             // Directly access the int32_t value and scale it
-            dest[i] = static_cast<float>(srcSamples[i] * scale);
+            dest[i] = static_cast<float>(srcSamples[i] * factor);
         }
     }
 
@@ -463,24 +465,23 @@ class AudioDeviceAsio
         switch (bitDepth)
         {
         case 16:
-            factor = 32768.0;
+            factor = 0x7fff;
             break;
         case 24:
-            factor = 8388608.0;
+            factor = 0x7fffff;
             break;
         case 32:
-            factor = 2147483648.0;
+            factor = 0x7fffffff;
             break;
         default:
             break;
         }
 
-        const double maxVal = 0x7FFFFFFF;  // Maximum value for int32_t
         int32_t* destSamples = reinterpret_cast<int32_t*>(dest);
     
         for (int i = 0; i < src.size(); ++i) {
             // Scale the float value to the int32_t range and clamp it
-            double scaledValue = std::clamp(src[i] * maxVal, -maxVal, maxVal);
+            double scaledValue = std::clamp(src[i] * factor, -factor, factor);
     
             // Round to the nearest integer
             destSamples[i] = static_cast<int32_t>(std::round(scaledValue));
@@ -498,7 +499,6 @@ class AudioDeviceAsio
 
         for(int i = 0; i < numActiveInputChannels; ++i)
         {
-            // convert to float (-1.0 and 1.0) somewhere here
             ASIOSampleType sampleType = audioDeviceAsioPtr->channelInfos[audioDeviceAsioPtr->bufferInfos[i].channelNum].type;
             std::span<float> dest(audioDeviceAsioPtr->inBuffers[i], bufferSize);
     
@@ -508,22 +508,19 @@ class AudioDeviceAsio
             case ASIOSTInt16LSB:
             case ASIOSTInt16MSB: 
                 bitDepth = 16;
-                // normalizeToFloat(static_cast<std::byte*>(audioDeviceAsioPtr->bufferInfos[i].buffers[doubleBufferIndex]), dest, 16);
                 break;
             case ASIOSTInt24LSB:
             case ASIOSTInt24MSB:
                 bitDepth = 24;
-                // normalizeToFloat(static_cast<std::byte*>(audioDeviceAsioPtr->bufferInfos[i].buffers[doubleBufferIndex]), dest, 24);
                 break;
             case ASIOSTInt32LSB:
             case ASIOSTInt32MSB:
                 bitDepth = 32;
-                // normalizeToFloat(static_cast<std::byte*>(audioDeviceAsioPtr->bufferInfos[i].buffers[doubleBufferIndex]), dest, 32);
                 break;
             case ASIOSTFloat32LSB:
             case ASIOSTFloat32MSB:
                 // If input format already is float, just copy the buffer
-                // std::memcpy(audioDeviceAsioPtr->inBuffers[i], audioDeviceAsioPtr->bufferInfos[i].buffers[doubleBufferIndex], bufferSize * 4);
+                std::memcpy(audioDeviceAsioPtr->inBuffers[i], audioDeviceAsioPtr->bufferInfos[i].buffers[doubleBufferIndex], bufferSize * 4);
                 break;
             case ASIOSTFloat64LSB:
             case ASIOSTFloat64MSB:
@@ -532,47 +529,40 @@ class AudioDeviceAsio
             default:
                 break;
             }
+
+            // Convert data to be floating point between [-1.0, 1.0] 
             normalizeToFloat(static_cast<std::byte*>(audioDeviceAsioPtr->bufferInfos[i].buffers[doubleBufferIndex]), dest, bitDepth);
-
-            // normalizeToFloat here
-
-            // std::memcpy(audioDeviceAsioPtr->inBuffers[i], audioDeviceAsioPtr->bufferInfos[i].buffers[doubleBufferIndex], bufferSize * 4);
         }
 
+        // Create a ProcessContext (or something) instance here and send that to the process call
         auto channels = std::max(numActiveInputChannels, numActiveOutputChannels);
-
-
         audioDeviceAsioPtr->process(audioDeviceAsioPtr->inBuffers, audioDeviceAsioPtr->outBuffers, channels, bufferSize);
 
         for(int i = 0; i < numActiveOutputChannels; ++i)
         {
-            // convert back to int somewhere here
             ASIOSampleType sampleType = audioDeviceAsioPtr->channelInfos[audioDeviceAsioPtr->bufferInfos[numActiveInputChannels + i].channelNum].type;
             int bytesToCopy{0};
             std::span<float> src(audioDeviceAsioPtr->outBuffers[i], bufferSize);
-    
+            int bitDepth;
+
             switch (sampleType)
             {
             case ASIOSTInt16LSB:
             case ASIOSTInt16MSB: 
-                // normalizeToFloat(static_cast<std::byte*>(audioDeviceAsioPtr->bufferInfos[i].buffers[doubleBufferIndex]), dest, 16);
+                bitDepth = 16;
                 break;
             case ASIOSTInt24LSB:
             case ASIOSTInt24MSB:
-                // normalizeToFloat(static_cast<std::byte*>(audioDeviceAsioPtr->bufferInfos[i].buffers[doubleBufferIndex]), dest, 24);
+                bitDepth = 24;
                 break;
             case ASIOSTInt32LSB:
             case ASIOSTInt32MSB:
-                // std::memcpy(audioDeviceAsioPtr->bufferInfos[numActiveInputChannels + i].buffers[doubleBufferIndex], audioDeviceAsioPtr->inBuffers[i], bufferSize * 4);
-                // JUCEconvertFromFloat(audioDeviceAsioPtr->inBuffers[i], audioDeviceAsioPtr->bufferInfos[numActiveInputChannels + i].buffers[doubleBufferIndex], bufferSize);
-
-                convertToInt(src, audioDeviceAsioPtr->bufferInfos[numActiveInputChannels + i].buffers[doubleBufferIndex], 32);
-                // std::memcpy(audioDeviceAsioPtr->inBuffers[i], audioDeviceAsioPtr->bufferInfos[i].buffers[doubleBufferIndex], bufferSize * 4);
+                bitDepth = 32;
                 break;
             case ASIOSTFloat32LSB:
             case ASIOSTFloat32MSB:
                 // If input format already is float, just copy the buffer
-                // std::memcpy(audioDeviceAsioPtr->inBuffers[i], audioDeviceAsioPtr->bufferInfos[i].buffers[doubleBufferIndex], bufferSize * 4);
+                std::memcpy(audioDeviceAsioPtr->inBuffers[i], audioDeviceAsioPtr->bufferInfos[i].buffers[doubleBufferIndex], bufferSize * 4);
                 break;
             case ASIOSTFloat64LSB:
             case ASIOSTFloat64MSB:
@@ -581,12 +571,8 @@ class AudioDeviceAsio
             default:
                 break;
             }
-            // normalizeToFloat here
 
-            // std::memcpy(audioDeviceAsioPtr->inBuffers[i], audioDeviceAsioPtr->bufferInfos[i].buffers[doubleBufferIndex], bufferSize * 4);
-
-
-            // std::memcpy(audioDeviceAsioPtr->bufferInfos[numActiveInputChannels + i].buffers[doubleBufferIndex], audioDeviceAsioPtr->outBuffers[i], bufferSize * 4);
+            convertToInt(src, audioDeviceAsioPtr->bufferInfos[numActiveInputChannels + i].buffers[doubleBufferIndex], bitDepth);
         }
 
         if(audioDeviceAsioPtr->postOutput)
@@ -601,17 +587,12 @@ class AudioDeviceAsio
     {
         for(int i = 0; i < numChannels; ++i)
         {
-            // float sample = in.at(i)[0];
-            // float test = -1.0;
-
-            // memcpy(out[i], &test, sizeof(float));
+            // Naive example that only works if using 1 input and 2 output channels.
+            // Im using it for playing guitar connectd to input 1 and have it sounding on both speakers.
             memcpy(out[i], in[0], bufferSize * 4);
         }
-        // std::memcpy(out[0], in[0], size);
     }
 
-    int mActiveInputChannel;
-    int mActiveOutputChannel;
     std::vector<std::string> inputChannelNames;
     std::vector<std::string> outputChannelNames;
     AudioStreamProperties mAudioStreamProperties;
@@ -655,17 +636,6 @@ class AudioDeviceAsio
 
 int main() {
 
-    int32_t maxInt = std::numeric_limits<int32_t>::max();
-    float a = static_cast<float>(std::numeric_limits<int32_t>::min()) / static_cast<float>(maxInt);
-
-    
-
-
-    std::cout << "maxInt = " << maxInt << std::endl;
-    std::cout << "a = " << a << std::endl;
-
-
-    // return 0;
     std::vector<std::string> names(16, std::string(32, '\0'));
     std::vector<char*> namePtrs;
     int numDrivers;
@@ -704,8 +674,11 @@ int main() {
         std::cout << i + 1 << ": " << audioStreamProperties.outputChannelNames.at(i) << std::endl;
     }
 
+    std::cout << "ONLY WORKS WITH CURRENT CONFIGURATION!!!" << std::endl;
+    std::cout << "Select active input channels: 1" << std::endl;
+    std::cout << "Select active output channels: 1 2" << std::endl;
 
-    std::cout << "Select active input channels: " << std::endl;
+    std::cout << "Select active input channels: ";
     
     int numInput;
     while(std::cin >> numInput)
@@ -724,7 +697,7 @@ int main() {
             break;
     }
 
-    std::cout << "Select active output channels: " << std::endl;
+    std::cout << "Select active output channels: ";
     int numOutput;
     while(std::cin >> numOutput)
     {
@@ -749,13 +722,12 @@ int main() {
     device->openStream(audioStreamProperties);
     device->startStream();
 
-    while(1)
-    {
-
-    }
+    system("pause");
 
     device->stopStream();
     device->closeStream();
+
+    std::cout << "asio-example exited peacefully" << std::endl;
 
     return 0;
 }
