@@ -244,39 +244,6 @@ class AudioDeviceAsio
             outputChannelNames.push_back(channelInfos.at(i).name);
         }
 
-        // Get the sample type
-        // ASIOSampleType sampleType = channelInfos[0].type;
-
-        // switch (sampleType)
-        // {
-        // case ASIOSTInt16LSB:
-        //     normalizeToFloat = []()
-        //     break;
-        // case ASIOSTInt24LSB:
-        //     break;
-        // case ASIOSTInt32LSB:
-        //     break;
-        // case ASIOSTFloat32LSB:
-        //     break;
-        // case ASIOSTFloat64LSB:
-        //     break;
-        // case ASIOSTInt16MSB: 
-        //     break;
-        // case ASIOSTInt24MSB:
-        //     break;
-        // case ASIOSTInt32MSB:
-        //     break;
-        // case ASIOSTFloat32MSB:
-        //     break;
-        // case ASIOSTFloat64MSB:
-        //     break;
-        // default:
-        //     break;
-        // }
-
-
-
-
         // init end
         auto totalBuffers = mAudioStreamProperties.activeInputChannels.count() + mAudioStreamProperties.activeOutputChannels.count();
         std::cout << "Total Buffers = " << totalBuffers << std::endl;
@@ -349,6 +316,7 @@ class AudioDeviceAsio
     std::vector<float*> inBuffers;
     std::vector<float*> outBuffers;
     std::vector<float> scratchBuffer;
+    bool xRun{false};
 
     private:
     // Callbacks
@@ -397,6 +365,7 @@ class AudioDeviceAsio
             std::cout << "AsioBufferSizeChange" << std::endl;
             break;
         case kAsioResyncRequest:
+                audioDeviceAsioPtr->xRun = true;
             std::cout << "AsioResyncRequest" << std::endl;
             break;
         case kAsioLatenciesChanged:
@@ -490,6 +459,12 @@ class AudioDeviceAsio
 
     static ASIOTime* bufferSwitchTimeInfo(ASIOTime *params, long doubleBufferIndex, ASIOBool directProcess)
     {
+        if(audioDeviceAsioPtr->xRun)
+        {
+            std::cout << "Stream overrun or underrun detected!" << std::endl;
+            audioDeviceAsioPtr->xRun = false;
+        }
+
         auto bufferSize = audioDeviceAsioPtr->preferredSize;
 
         auto numActiveInputChannels = audioDeviceAsioPtr->mAudioStreamProperties.activeInputChannels.count();
