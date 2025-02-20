@@ -196,14 +196,16 @@ class AudioDeviceAsio
         bufferInfos.resize(inputChannels + outputChannels);
         channelInfos.resize(inputChannels + outputChannels);
 
+        auto itBufferInfo = bufferInfos.begin();
+
         for(int i = 0; i < inputChannels; ++i)
         {
             if(audioStreamProperties.activeInputChannels.test(i))
             {
-                auto& bufferInfo = bufferInfos.at(i);
-                bufferInfo.isInput = ASIOTrue;
-                bufferInfo.channelNum = i;
-                bufferInfo.buffers[0] = bufferInfo.buffers[1] = nullptr;
+                itBufferInfo->isInput = ASIOTrue;
+                itBufferInfo->channelNum = i;
+                itBufferInfo->buffers[0] = itBufferInfo->buffers[1] = nullptr;
+                ++itBufferInfo;
             }
         }
 
@@ -211,10 +213,10 @@ class AudioDeviceAsio
         {
             if(audioStreamProperties.activeOutputChannels.test(i))
             {
-                auto& bufferInfo = bufferInfos.at(audioStreamProperties.activeInputChannels.count()  + i);
-                bufferInfo.isInput = ASIOFalse;
-                bufferInfo.channelNum = i;
-                bufferInfo.buffers[0] = bufferInfo.buffers[1] = nullptr;
+                itBufferInfo->isInput = ASIOFalse;
+                itBufferInfo->channelNum = i;
+                itBufferInfo->buffers[0] = itBufferInfo->buffers[1] = nullptr;
+                ++itBufferInfo;
             }
         }
 
