@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+        <dialog>
+                <div>
+                    <label for="">Title:</label><br>
+                    <input id="title" type="text"><br>
+                </div>
+                <div>
+                    <label for="">Author:</label><br>
+                    <input id="author" type="text"><br>
+                </div>
+                <div>
+                    <label for="">Year:</label><br>
+                    <input id="year" type="text"><br>
+                </div>
+            <button class="add-button" type="submit">Add</button>
+            <button autofocus class="close-button">Close</button>
+    </dialog>
+    <button class="new-book">New Book</button>
+    <table>
+       <thead>
+            <tr>
+                <th>Title</th>
+                <th>Author</th>
+                <th>Year</th>
+                <th>Read</th>
+            </tr>
+       </thead> 
+       <tbody id="data">
+       </tbody>
+    </table>
+
+    <script src="./app.js"></script>
+</body>
+</html>
