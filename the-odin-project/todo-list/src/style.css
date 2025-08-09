@@ -1,0 +1,25 @@
+body {
+    margin: 0;
+    display: flex;
+    height: 100vh;
+}
+
+.side-bar {
+    background-color: lightyellow;
+    width: 25%;
+    height: 100vh;
+    padding: 10px;
+}
+
+.content {
+    flex: 1;
+    height: 100vh;
+    background-color: white;
+}
+
+.add-task {
+    display: flex;
+    gap: 10px;
+    padding: 10px;
+    align-items: center;
+}
