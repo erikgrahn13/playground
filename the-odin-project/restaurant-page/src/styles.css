@@ -1,0 +1,33 @@
+@font-face {
+  font-family: 'DeathMetalFont';
+  src: url('./mb-forever-raw.regular.ttf') format('truetype');
+  font-weight: 600;
+  font-style: normal;
+}
+
+body {
+    background-color: black;
+}
+
+#content {
+    background-color: black;
+    color: white;
+    text-align: center;
+    font-family: "DeathMetalFont";
+}
+
+nav {
+    background-color: black;
+    text-align: center;
+}
+
+button {
+    font-family: "DeathMetalFont";
+    border-radius: 10px;
+    height: 50px;
+    width: 100px;
+    font-size: larger;
+    border-width: 2px;
+    background-color: white;
+    border-color: gray;
+}

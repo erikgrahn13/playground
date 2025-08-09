@@ -3,7 +3,7 @@ const HtmlWebpackPlugin = require("html-webpack-plugin");
 const { type } = require("os");
 
 module.exports = {
-    mode: "development",
+    mode: "production",
     entry: "./src/index.js",
     devtool: "eval-source-map",
     devServer: {
