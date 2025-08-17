@@ -1,2 +1,5 @@
 # local/snippets/system_files.custom
 # Placeholder for local list of files to add to system partition
+bin/io-snd=sbin/io-snd
+lib/libasound.so=lib/libasound.so.5
+lib/dll/snd-swmix.so=lib/dll/snd-swmix.so

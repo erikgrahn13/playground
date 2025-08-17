@@ -1,6 +1,6 @@
 {
     "qnx.sdpPath": "/home/erik/qnx800",
-    "qnx.config.defaultProjectsRoot": "/home/erik/development/qnxproject",
+    "qnx.config.defaultProjectsRoot": "/home/erik/development/playground/audio/qnxproject",
     "qnx.projects.autoConfigure": "no",
 
 }

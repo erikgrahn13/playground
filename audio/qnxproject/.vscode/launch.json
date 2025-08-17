@@ -12,6 +12,32 @@
       "upload": true,
       "stopAtEntry": true,
       "preLaunchTask": "${defaultBuildTask}"
+    },
+    {
+      "type": "qnx-gdb",
+      "request": "launch",
+      "name": "io-snd driver",
+      "gdb": "gdb",
+      // "program": "${command:qnx.autodetectBinary}",
+      "program": "${workspaceFolder}/build/dummy",
+      // "program": "${env:QNX_TARGET}/x86_64/usr/sbin/io-snd",
+      // "program": "-",
+      "remotePath": "/system/bin/io-snd",
+      "args": [
+        "-vv",
+        "-c",
+        "erik"
+      ],
+      "files": [
+        {
+          "hostPath": "${workspaceFolder}/src/io-snd.conf",
+          "remotePath": "/tmp/io-snd.conf",
+        }
+      ],
+      "qnxtarget": "default",
+      "upload": false,
+      // "stopAtEntry": true,
+      // "preLaunchTask": "${defaultBuildTask}"
     }
   ]
 }
