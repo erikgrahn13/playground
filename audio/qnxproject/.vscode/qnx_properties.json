@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "template": {
+    "projectId": "hello_qnx",
+    "artifactName": "hello_qnx",
+    "buildType": "CMake",
+    "language": "cpp",
+    "archlist": "x86_64,aarch64le",
+    "artifactType": "Executable"
+  }
+}
