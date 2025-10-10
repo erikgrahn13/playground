@@ -3,15 +3,9 @@
 #ifdef __linux__
 #include <gtk/gtk.h>
 #include <webkit2/webkit2.h>
-
-#include "webview_linux.h"
-#include "../../resource_manager.h"
-
-#ifdef __linux__
-#include <gtk/gtk.h>
-#include <webkit2/webkit2.h>
 #include <iostream>
 #include <string>
+#include "../../resource_manager.h"
 
 // Custom URI scheme handler for serving embedded resources
 static void app_scheme_handler(WebKitURISchemeRequest* request, gpointer user_data) {
@@ -72,7 +66,7 @@ void WebViewLinux::create(int width, int height, const std::string& title) {
     // Connect close signal
     g_signal_connect(window, "destroy", G_CALLBACK(gtk_main_quit), nullptr);
     
-    // Register custom URI scheme
+    // Register custom URI scheme for embedded resources
     WebKitWebContext* context = webkit_web_context_get_default();
     webkit_web_context_register_uri_scheme(
         context, "app", app_scheme_handler, nullptr, nullptr);
@@ -112,27 +106,4 @@ void WebViewLinux::create(int width, int height, const std::string& title) {}
 void WebViewLinux::navigate(const std::string& url) {}
 void WebViewLinux::run() {}
 void WebViewLinux::close() {}
-#endif
-
-WebViewLinux::~WebViewLinux() {
-    close();
-}
-
-void WebViewLinux::create(int width, int height, const std::string& title) {
-    // Linux GTK/WebKit implementation - placeholder for cross-platform support
-    // Full implementation would require GTK and WebKitGTK setup
-}
-
-void WebViewLinux::navigate(const std::string& url) {
-    // Linux navigation implementation
-}
-
-void WebViewLinux::run() {
-    // GTK main loop
-}
-
-void WebViewLinux::close() {
-    // Cleanup GTK resources
-}
-
 #endif
