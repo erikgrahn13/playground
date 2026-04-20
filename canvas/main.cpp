@@ -35,13 +35,44 @@ extern "C" JSModuleDef* js_init_module_singularity(JSContext* ctx, const char* m
     return m;
 }
 
+void readResult(JSContext* ctx) {
+    JSValue global = JS_GetGlobalObject(ctx);
+
+    JSValue result = JS_GetPropertyStr(ctx, global, "result");
+    if (JS_IsException(result)) {
+        // dumpException(ctx);
+        JS_FreeValue(ctx, global);
+        return;
+    }
+
+    JSValue type = JS_GetPropertyStr(ctx, result, "type");
+    JSValue props = JS_GetPropertyStr(ctx, result, "props");
+    JSValue foo  = JS_GetPropertyStr(ctx, props, "foo");
+
+    const char* typeStr = JS_ToCString(ctx, type);
+    int32_t fooValue = 0;
+    JS_ToInt32(ctx, &fooValue, foo);
+
+    std::cout << "type = " << (typeStr ? typeStr : "<null>") << "\n";
+    std::cout << "foo = " << fooValue << "\n";
+
+    if (typeStr)
+        JS_FreeCString(ctx, typeStr);
+
+    JS_FreeValue(ctx, foo);
+    JS_FreeValue(ctx, props);
+    JS_FreeValue(ctx, type);
+    JS_FreeValue(ctx, result);
+    JS_FreeValue(ctx, global);
+}
+
 
 int main()
 {
     std::cout << "Hello world" << std::endl;
 
-    auto rt = JS_NewRuntime();
-    auto ctx = JS_NewContext(rt);
+    JSRuntime *rt = JS_NewRuntime();
+    JSContext *ctx = JS_NewContext(rt);
 
     js_init_module_singularity(ctx, "singularity");
 
